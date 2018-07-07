@@ -1,3 +1,12 @@
+stubdom/.vscode/
+stubdom/Makefile.old
+stubdom/json-c-x86_64/
+stubdom/tinyvmi-*/
+
+tools/flask/policy/modules/domU_old.te
+tools/qemu-xen-traditional/
+tools/qemu-xen/
+
 .hg
 .*.tmp
 *.orig

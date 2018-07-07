@@ -1,0 +1,3 @@
+[submodule "stubdom/tinyvmi"]
+	path = stubdom/tinyvmi
+	url = https://github.com/tinyvmi/tinyvmi.git

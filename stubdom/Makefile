@@ -61,7 +61,7 @@ TARGET_CPPFLAGS += -I$(XEN_ROOT)/xen/include
 
 TARGET_LDFLAGS += -nostdlib -L$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf/lib
 
-TARGETS=$(STUBDOM_TARGETS)
+TARGETS=$(STUBDOM_TARGETS) c xenstore tinyvmi
 
 STUBDOMPATH="stubdompath.sh"
 genpath-target = $(call buildmakevars2file,$(STUBDOMPATH))
@@ -101,6 +101,41 @@ $(NEWLIB_STAMPFILE): mk-headers-$(XEN_TARGET_ARCH) newlib-$(NEWLIB_VERSION)
 	  $(MAKE) DESTDIR= && \
 	  $(MAKE) DESTDIR= install )
 
+##############
+# Cross-json-c
+##############
+# https://s3.amazonaws.com/json-c_releases/releases/json-c-0.13.1.tar.gz
+
+JSON_C_URL="https://s3.amazonaws.com/json-c_releases/releases"
+JSON_C_VERSION=0.13
+
+# TARGET_CFLAGS += -Wno-error=implicit-fallthrough -Wno-error=declaration-after-statement 
+# TARGET_CFLAGS += -Wno-error=strict-prototypes
+# TARGET_CFLAGS += -Wno-error=implicit-function-declaration 
+TARGET_CFLAGS += -Wno-error
+
+json-c-$(JSON_C_VERSION).tar.gz:
+	$(FETCHER) $@ $(JSON_C_URL)/$@
+
+json-c-$(XEN_TARGET_ARCH): json-c-$(JSON_C_VERSION).tar.gz
+	tar xzf $<
+	mv json-c-$(JSON_C_VERSION) $@
+
+JSON_C_STAMPFILE=$(CROSS_ROOT)/$(GNU_TARGET_ARCH)-xen-elf/lib/libjson-c.a
+.PHONY: cross-json-c
+cross-json-c: $(JSON_C_STAMPFILE)
+$(JSON_C_STAMPFILE): json-c-$(XEN_TARGET_ARCH) $(NEWLIB_STAMPFILE)
+	( cd json-c-$(XEN_TARGET_ARCH) && \
+	  sh autogen.sh && \
+	  CFLAGS="$(TARGET_CPPFLAGS) $(TARGET_CFLAGS)" CC=$(CC) \
+	  ./configure --disable-shared --disable-threading \
+		  --prefix=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf \
+		  --exec-prefix=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf \
+		  --host=$(GNU_TARGET_ARCH)-xen-elf && \
+	  $(MAKE) DESTDIR= && \
+	  $(MAKE) DESTDIR= install )
+
+
 ############
 # Cross-zlib
 ############
@@ -117,7 +152,7 @@ ZLIB_STAMPFILE=$(CROSS_ROOT)/$(GNU_TARGET_ARCH)-xen-elf/lib/libz.a
 cross-zlib: $(ZLIB_STAMPFILE)
 $(ZLIB_STAMPFILE): zlib-$(XEN_TARGET_ARCH) $(NEWLIB_STAMPFILE)
 	( cd $< && \
-	  CFLAGS="$(TARGET_CPPFLAGS) $(TARGET_CFLAGS)" CC=$(CC) ./configure --prefix=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf && \
+	  CFLAGS="$(TARGET_CPPFLAGS) $(TARGET_CFLAGS)" CC=$(CC) ./configure --host=$(GNU_TARGET_ARCH)-xen-elf --prefix=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf && \
 	  $(MAKE) DESTDIR= libz.a && \
 	  $(MAKE) DESTDIR= install )
 
@@ -278,7 +313,7 @@ $(OCAML_STAMPFILE): ocaml-$(XEN_TARGET_ARCH)/.dirstamp
 #######
 
 .PHONY: $(CROSS_ROOT)
-$(CROSS_ROOT): cross-newlib cross-zlib cross-libpci
+$(CROSS_ROOT): cross-newlib cross-json-c cross-zlib cross-libpci
 
 QEMU_ROOT := $(shell if [ -d "$(QEMU_TRADITIONAL_LOC)" ]; then echo "$(QEMU_TRADITIONAL_LOC)"; else echo .; fi)
 
@@ -493,6 +528,19 @@ c-minios-config.mk: $(CURDIR)/c/minios.cfg
 c: $(CROSS_ROOT) c-minios-config.mk
 	CPPFLAGS="$(TARGET_CPPFLAGS) $(shell cat c-minios-config.mk)" CFLAGS="$(TARGET_CFLAGS)" $(MAKE) DESTDIR= -C $@ LWIPDIR=$(CURDIR)/lwip-$(XEN_TARGET_ARCH) 
 
+
+###
+# tinyvmi based on c but no glib, 2014.10.27
+###
+
+tinyvmi-minios-config.mk: $(CURDIR)/tinyvmi/minios.cfg
+	MINIOS_CONFIG="$<" CONFIG_FILE="$(CURDIR)/$@" $(MAKE) DESTDIR= -C $(MINI_OS) config
+
+.PHONY: tinyvmi
+tinyvmi: cross-json-c cross-newlib $(CROSS_ROOT) tinyvmi-minios-config.mk
+	CPPFLAGS="$(TARGET_CPPFLAGS) $(shell cat tinyvmi-minios-config.mk)" CFLAGS="$(TARGET_CFLAGS)" $(MAKE) DESTDIR= -C $@ LWIPDIR=$(CURDIR)/lwip-$(XEN_TARGET_ARCH) 
+
+
 ######
 # VTPM
 ######
@@ -565,6 +613,13 @@ caml-stubdom: mini-os-$(XEN_TARGET_ARCH)-caml lwip-$(XEN_TARGET_ARCH) libxc cros
 c-stubdom: mini-os-$(XEN_TARGET_ARCH)-c lwip-$(XEN_TARGET_ARCH) libxc c
 	DEF_CPPFLAGS="$(TARGET_CPPFLAGS)" DEF_CFLAGS="$(TARGET_CFLAGS)" DEF_LDFLAGS="$(TARGET_LDFLAGS)" MINIOS_CONFIG="$(CURDIR)/c/minios.cfg" $(MAKE) DESTDIR= -C $(MINI_OS) OBJ_DIR=$(CURDIR)/$< LWIPDIR=$(CURDIR)/lwip-$(XEN_TARGET_ARCH) APP_OBJS=$(CURDIR)/c/main.a
 
+
+## added 20180305, lele
+.PHONY: tinyvmi-stubdom
+tinyvmi-stubdom: mini-os-$(XEN_TARGET_ARCH)-tinyvmi lwip-$(XEN_TARGET_ARCH) libxc xenstore tinyvmi
+	@echo "LELE:target $@ :L563"
+	DEF_CPPFLAGS="$(TARGET_CPPFLAGS)" DEF_CFLAGS="$(TARGET_CFLAGS)" DEF_LDFLAGS="$(TARGET_LDFLAGS)" MINIOS_CONFIG="$(CURDIR)/tinyvmi/minios.cfg" $(MAKE) DESTDIR= -C $(MINI_OS) OBJ_DIR=$(CURDIR)/$< LWIPDIR=$(CURDIR)/lwip-$(XEN_TARGET_ARCH) APP_OBJS=$(CURDIR)/tinyvmi/main.a
+
 .PHONY: vtpm-stubdom
 vtpm-stubdom: mini-os-$(XEN_TARGET_ARCH)-vtpm vtpm
 	DEF_CPPFLAGS="$(TARGET_CPPFLAGS)" DEF_CFLAGS="$(TARGET_CFLAGS)" DEF_LDFLAGS="$(TARGET_LDFLAGS)" MINIOS_CONFIG="$(CURDIR)/vtpm/minios.cfg" $(MAKE) -C $(MINI_OS) OBJ_DIR=$(CURDIR)/$< APP_OBJS="$(CURDIR)/vtpm/vtpm.a" APP_LDLIBS="-ltpm -ltpm_crypto -lgmp -lpolarssl"
@@ -603,6 +658,8 @@ install-grub: pv-grub
 	$(INSTALL_DATA) mini-os-$(XEN_TARGET_ARCH)-grub/mini-os.gz "$(DESTDIR)$(XENFIRMWAREDIR)/pv-grub-$(XEN_TARGET_ARCH).gz"
 
 install-c: c-stubdom
+
+install-tinyvmi: tinyvmi-stubdom
 
 install-caml: caml-stubdom
 
@@ -658,6 +715,7 @@ uninstall-vtpmmgr:
 clean:
 	rm -fr mini-os-$(XEN_TARGET_ARCH)-ioemu
 	rm -fr mini-os-$(XEN_TARGET_ARCH)-c
+	rm -fr mini-os-$(XEN_TARGET_ARCH)-tinyvmi #lele, 2018.02.18
 	rm -fr mini-os-$(XEN_TARGET_ARCH)-caml
 	rm -fr mini-os-$(XEN_TARGET_ARCH)-grub
 	rm -fr mini-os-$(XEN_TARGET_ARCH)-xenstore
@@ -687,6 +745,7 @@ clean:
 crossclean: clean
 	rm -fr $(CROSS_ROOT)
 	rm -fr newlib-$(XEN_TARGET_ARCH)
+	rm -fr json-c-$(XEN_TARGET_ARCH)
 	rm -fr zlib-$(XEN_TARGET_ARCH) pciutils-$(XEN_TARGET_ARCH)
 	rm -fr libs-$(XEN_TARGET_ARCH)
 	rm -fr libxc-$(XEN_TARGET_ARCH) ioemu xenstore
