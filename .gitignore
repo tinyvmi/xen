@@ -2,7 +2,10 @@ stubdom/.vscode/
 stubdom/Makefile.old
 stubdom/json-c-x86_64/
 stubdom/tinyvmi-*/
+stubdom/iconv-x86_64/
+stubdom/jansson-x86_64/
 
+tools/flask/policy/modules/dom0_old.te
 tools/flask/policy/modules/domU_old.te
 tools/qemu-xen-traditional/
 tools/qemu-xen/

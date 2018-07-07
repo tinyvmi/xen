@@ -135,6 +135,68 @@ $(JSON_C_STAMPFILE): json-c-$(XEN_TARGET_ARCH) $(NEWLIB_STAMPFILE)
 	  $(MAKE) DESTDIR= && \
 	  $(MAKE) DESTDIR= install )
 
+##############
+# Cross-jansson
+##############
+# http://www.digip.org/jansson/releases/jansson-2.11.tar.gz
+JANSSON_URL="http://www.digip.org/jansson/releases"
+JANSSON_VERSION=2.11
+
+# TARGET_CFLAGS += -Wno-error=implicit-fallthrough -Wno-error=declaration-after-statement 
+# TARGET_CFLAGS += -Wno-error=strict-prototypes
+# TARGET_CFLAGS += -Wno-error=implicit-function-declaration 
+TARGET_CFLAGS += -Wno-error
+
+jansson-$(JANSSON_VERSION).tar.gz:
+	$(FETCHER) $@ $(JANSSON_URL)/$@
+
+jansson-$(XEN_TARGET_ARCH): jansson-$(JANSSON_VERSION).tar.gz
+	tar xzf $<
+	mv jansson-$(JANSSON_VERSION) $@
+
+JANSSON_STAMPFILE=$(CROSS_ROOT)/$(GNU_TARGET_ARCH)-xen-elf/lib/libjansson.a
+.PHONY: cross-jansson
+cross-jansson: $(JANSSON_STAMPFILE)
+$(JANSSON_STAMPFILE): jansson-$(XEN_TARGET_ARCH) $(NEWLIB_STAMPFILE)
+	( cd jansson-$(XEN_TARGET_ARCH) && \
+	  CFLAGS="$(TARGET_CPPFLAGS) $(TARGET_CFLAGS)" CC=$(CC) \
+	  ./configure --prefix=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf \
+		  --host=$(GNU_TARGET_ARCH)-xen-elf && \
+	  $(MAKE) DESTDIR= && \
+	  $(MAKE) DESTDIR= install )
+
+##############
+# Cross-iconv
+##############
+# https://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.15.tar.gz
+ICONV_URL="https://ftp.gnu.org/pub/gnu/libiconv"
+ICONV_VERSION=1.15
+
+# TARGET_CFLAGS += -Wno-error=implicit-fallthrough -Wno-error=declaration-after-statement 
+# TARGET_CFLAGS += -Wno-error=strict-prototypes
+# TARGET_CFLAGS += -Wno-error=implicit-function-declaration 
+TARGET_CFLAGS += -Wno-error
+
+libiconv-$(ICONV_VERSION).tar.gz:
+	$(FETCHER) $@ $(ICONV_URL)/$@
+
+iconv-$(XEN_TARGET_ARCH): libiconv-$(ICONV_VERSION).tar.gz
+	tar xzf $<
+	mv libiconv-$(ICONV_VERSION) $@
+
+ICONV_STAMPFILE=$(CROSS_ROOT)/$(GNU_TARGET_ARCH)-xen-elf/lib/libiconv.a
+.PHONY: cross-iconv
+cross-iconv: $(ICONV_STAMPFILE)
+$(ICONV_STAMPFILE): iconv-$(XEN_TARGET_ARCH) $(NEWLIB_STAMPFILE)
+	( cd iconv-$(XEN_TARGET_ARCH) && \
+	  CFLAGS="$(TARGET_CPPFLAGS) $(TARGET_CFLAGS)" CC=$(CC) \
+	  ./configure --prefix=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf \
+		  --host=$(GNU_TARGET_ARCH)-xen-elf \
+		  --build=x86_64-linux-gnu \
+		  --enable-static \
+		  && \
+	  $(MAKE) DESTDIR= && \
+	  $(MAKE) DESTDIR= install )
 
 ############
 # Cross-zlib
@@ -152,7 +214,7 @@ ZLIB_STAMPFILE=$(CROSS_ROOT)/$(GNU_TARGET_ARCH)-xen-elf/lib/libz.a
 cross-zlib: $(ZLIB_STAMPFILE)
 $(ZLIB_STAMPFILE): zlib-$(XEN_TARGET_ARCH) $(NEWLIB_STAMPFILE)
 	( cd $< && \
-	  CFLAGS="$(TARGET_CPPFLAGS) $(TARGET_CFLAGS)" CC=$(CC) ./configure --host=$(GNU_TARGET_ARCH)-xen-elf --prefix=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf && \
+	  CFLAGS="$(TARGET_CPPFLAGS) $(TARGET_CFLAGS)" CC=$(CC) ./configure --prefix=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf && \
 	  $(MAKE) DESTDIR= libz.a && \
 	  $(MAKE) DESTDIR= install )
 
@@ -313,7 +375,7 @@ $(OCAML_STAMPFILE): ocaml-$(XEN_TARGET_ARCH)/.dirstamp
 #######
 
 .PHONY: $(CROSS_ROOT)
-$(CROSS_ROOT): cross-newlib cross-json-c cross-zlib cross-libpci
+$(CROSS_ROOT): cross-newlib cross-zlib cross-libpci
 
 QEMU_ROOT := $(shell if [ -d "$(QEMU_TRADITIONAL_LOC)" ]; then echo "$(QEMU_TRADITIONAL_LOC)"; else echo .; fi)
 
@@ -537,8 +599,9 @@ tinyvmi-minios-config.mk: $(CURDIR)/tinyvmi/minios.cfg
 	MINIOS_CONFIG="$<" CONFIG_FILE="$(CURDIR)/$@" $(MAKE) DESTDIR= -C $(MINI_OS) config
 
 .PHONY: tinyvmi
-tinyvmi: cross-json-c cross-newlib $(CROSS_ROOT) tinyvmi-minios-config.mk
-	CPPFLAGS="$(TARGET_CPPFLAGS) $(shell cat tinyvmi-minios-config.mk)" CFLAGS="$(TARGET_CFLAGS)" $(MAKE) DESTDIR= -C $@ LWIPDIR=$(CURDIR)/lwip-$(XEN_TARGET_ARCH) 
+# tinyvmi: cross-iconv cross-jansson cross-json-c cross-newlib $(CROSS_ROOT) tinyvmi-minios-config.mk
+tinyvmi: cross-jansson cross-json-c cross-newlib $(CROSS_ROOT) tinyvmi-minios-config.mk
+	CPPFLAGS="$(TARGET_CPPFLAGS) $(shell cat c-minios-config.mk)" CFLAGS="$(TARGET_CFLAGS)" $(MAKE) DESTDIR= -C $@ LWIPDIR=$(CURDIR)/lwip-$(XEN_TARGET_ARCH) 
 
 
 ######
@@ -745,7 +808,6 @@ clean:
 crossclean: clean
 	rm -fr $(CROSS_ROOT)
 	rm -fr newlib-$(XEN_TARGET_ARCH)
-	rm -fr json-c-$(XEN_TARGET_ARCH)
 	rm -fr zlib-$(XEN_TARGET_ARCH) pciutils-$(XEN_TARGET_ARCH)
 	rm -fr libs-$(XEN_TARGET_ARCH)
 	rm -fr libxc-$(XEN_TARGET_ARCH) ioemu xenstore

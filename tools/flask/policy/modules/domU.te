@@ -30,7 +30,7 @@ allow domU_t xen_t:xen writeconsole;
 # -------------
 # domU -> domU
 # -------------
-allow domU_t domU_t:hvm {gethvmc getparam} ;
+allow domU_t domU_t:hvm {gethvmc getparam dm} ;
 
 allow domU_t domU_t:domain {
     pause unpause getdomaininfo getaddrsize setdebugging

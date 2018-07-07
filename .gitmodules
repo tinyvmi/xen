@@ -1,3 +1,6 @@
 [submodule "stubdom/tinyvmi"]
 	path = stubdom/tinyvmi
 	url = https://github.com/tinyvmi/tinyvmi.git
+[submodule "extras/mini-os"]
+	path = extras/mini-os
+	url = https://github.com/tinyvmi/mini-os.git
