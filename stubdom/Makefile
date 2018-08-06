@@ -61,7 +61,9 @@ TARGET_CPPFLAGS += -I$(XEN_ROOT)/xen/include
 
 TARGET_LDFLAGS += -nostdlib -L$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf/lib
 
-TARGETS=$(STUBDOM_TARGETS) c xenstore tinyvmi
+# TARGETS=$(STUBDOM_TARGETS) c xenstore tinyvmi tinynet
+
+TARGETS=$(STUBDOM_TARGETS) c tinyvmi tinynet
 
 STUBDOMPATH="stubdompath.sh"
 genpath-target = $(call buildmakevars2file,$(STUBDOMPATH))
@@ -256,9 +258,10 @@ lwip-$(LWIP_VERSION).tar.gz:
 lwip-$(XEN_TARGET_ARCH): lwip-$(LWIP_VERSION).tar.gz
 	tar xzf $<
 	mv lwip $@
-	patch -d $@ -p0 < lwip.patch-cvs
-	patch -d $@ -p0 < lwip.dhcp_create_request-hwaddr_len.patch
+	#patch -d $@ -p0 < lwip.patch-cvs
+	#patch -d $@ -p0 < lwip.dhcp_create_request-hwaddr_len.patch
 	touch $@
+
 
 #############
 # cross-gmp
@@ -591,6 +594,14 @@ c: $(CROSS_ROOT) c-minios-config.mk
 	CPPFLAGS="$(TARGET_CPPFLAGS) $(shell cat c-minios-config.mk)" CFLAGS="$(TARGET_CFLAGS)" $(MAKE) DESTDIR= -C $@ LWIPDIR=$(CURDIR)/lwip-$(XEN_TARGET_ARCH) 
 
 
+# tinynet, a minios with network capability
+tinynet-minios-config.mk: $(CURDIR)/tinynet/minios.cfg
+	MINIOS_CONFIG="$<" CONFIG_FILE="$(CURDIR)/$@" $(MAKE) DESTDIR= -C $(MINI_OS) config
+
+.PHONY: tinynet
+tinynet: $(CROSS_ROOT) tinynet-minios-config.mk
+	CPPFLAGS="$(TARGET_CPPFLAGS) $(shell cat tinynet-minios-config.mk)" CFLAGS="$(TARGET_CFLAGS)" $(MAKE) DESTDIR= -C $@ LWIPDIR=$(CURDIR)/lwip-$(XEN_TARGET_ARCH) 
+
 ###
 # tinyvmi based on c but no glib, 2014.10.27
 ###
@@ -677,11 +688,19 @@ c-stubdom: mini-os-$(XEN_TARGET_ARCH)-c lwip-$(XEN_TARGET_ARCH) libxc c
 	DEF_CPPFLAGS="$(TARGET_CPPFLAGS)" DEF_CFLAGS="$(TARGET_CFLAGS)" DEF_LDFLAGS="$(TARGET_LDFLAGS)" MINIOS_CONFIG="$(CURDIR)/c/minios.cfg" $(MAKE) DESTDIR= -C $(MINI_OS) OBJ_DIR=$(CURDIR)/$< LWIPDIR=$(CURDIR)/lwip-$(XEN_TARGET_ARCH) APP_OBJS=$(CURDIR)/c/main.a
 
 
+## added 20180730, lele
+.PHONY: tinynet-stubdom
+tinynet-stubdom: mini-os-$(XEN_TARGET_ARCH)-tinynet lwip-$(XEN_TARGET_ARCH) libxc tinynet
+	@echo "LELE:target $@ :L563"
+	DEF_CPPFLAGS="$(TARGET_CPPFLAGS)" DEF_CFLAGS="$(TARGET_CFLAGS)" DEF_LDFLAGS="$(TARGET_LDFLAGS)" MINIOS_CONFIG="$(CURDIR)/tinynet/minios.cfg" $(MAKE) DESTDIR= -C $(MINI_OS) OBJ_DIR=$(CURDIR)/$< LWIPDIR=$(CURDIR)/lwip-$(XEN_TARGET_ARCH) APP_OBJS=$(CURDIR)/tinynet/main.a
+
+
 ## added 20180305, lele
 .PHONY: tinyvmi-stubdom
 tinyvmi-stubdom: mini-os-$(XEN_TARGET_ARCH)-tinyvmi lwip-$(XEN_TARGET_ARCH) libxc xenstore tinyvmi
 	@echo "LELE:target $@ :L563"
 	DEF_CPPFLAGS="$(TARGET_CPPFLAGS)" DEF_CFLAGS="$(TARGET_CFLAGS)" DEF_LDFLAGS="$(TARGET_LDFLAGS)" MINIOS_CONFIG="$(CURDIR)/tinyvmi/minios.cfg" $(MAKE) DESTDIR= -C $(MINI_OS) OBJ_DIR=$(CURDIR)/$< LWIPDIR=$(CURDIR)/lwip-$(XEN_TARGET_ARCH) APP_OBJS=$(CURDIR)/tinyvmi/main.a
+
 
 .PHONY: vtpm-stubdom
 vtpm-stubdom: mini-os-$(XEN_TARGET_ARCH)-vtpm vtpm
@@ -779,6 +798,7 @@ clean:
 	rm -fr mini-os-$(XEN_TARGET_ARCH)-ioemu
 	rm -fr mini-os-$(XEN_TARGET_ARCH)-c
 	rm -fr mini-os-$(XEN_TARGET_ARCH)-tinyvmi #lele, 2018.02.18
+	rm -fr mini-os-$(XEN_TARGET_ARCH)-tinynet #lele, 2018.07.30
 	rm -fr mini-os-$(XEN_TARGET_ARCH)-caml
 	rm -fr mini-os-$(XEN_TARGET_ARCH)-grub
 	rm -fr mini-os-$(XEN_TARGET_ARCH)-xenstore

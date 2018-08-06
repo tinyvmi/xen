@@ -3505,7 +3505,9 @@ else
 fi
 
 fi
-LWIP_VERSION="1.3.0"
+#LWIP_VERSION="1.3.0"
+LWIP_VERSION="1.3.2"
+#LWIP_VERSION="2.0.3"
 
 
 
