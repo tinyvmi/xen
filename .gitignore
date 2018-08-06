@@ -8,7 +8,6 @@ stubdom/jansson-x86_64/
 tools/flask/policy/modules/dom0_old.te
 tools/flask/policy/modules/domU_old.te
 tools/qemu-xen-traditional/
-tools/qemu-xen/
 
 .hg
 .*.tmp

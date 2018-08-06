@@ -7,3 +7,6 @@
 [submodule "extras/mini-os"]
 	path = extras/mini-os
 	url = https://github.com/tinyvmi/mini-os.git
+[submodule "tools/qemu-xen"]
+	path = tools/qemu-xen
+	url = https://xenbits.xen.org/git-http/qemu-xen.git
