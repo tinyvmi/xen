@@ -10,3 +10,6 @@
 [submodule "tools/qemu-xen"]
 	path = tools/qemu-xen
 	url = https://xenbits.xen.org/git-http/qemu-xen.git
+[submodule "stubdom/tinycpp"]
+	path = stubdom/tinycpp
+	url = https://github.com/tinyvmi/tinycpp.git

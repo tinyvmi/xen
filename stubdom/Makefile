@@ -63,7 +63,7 @@ TARGET_LDFLAGS += -nostdlib -L$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf/lib
 
 # TARGETS=$(STUBDOM_TARGETS) c xenstore tinyvmi tinynet
 
-TARGETS=$(STUBDOM_TARGETS) c tinyvmi tinynet
+TARGETS=$(STUBDOM_TARGETS) c tinyvmi tinynet tinycpp
 
 STUBDOMPATH="stubdompath.sh"
 genpath-target = $(call buildmakevars2file,$(STUBDOMPATH))
@@ -102,6 +102,141 @@ $(NEWLIB_STAMPFILE): mk-headers-$(XEN_TARGET_ARCH) newlib-$(NEWLIB_VERSION)
 	  CC_FOR_TARGET="$(CC) $(TARGET_CPPFLAGS) $(TARGET_CFLAGS) $(NEWLIB_CFLAGS)" AR_FOR_TARGET=$(AR) LD_FOR_TARGET=$(LD) RANLIB_FOR_TARGET=$(RANLIB) ../newlib-$(NEWLIB_VERSION)/configure --prefix=$(CROSS_PREFIX) --verbose --target=$(GNU_TARGET_ARCH)-xen-elf --enable-newlib-io-long-long --disable-multilib && \
 	  $(MAKE) DESTDIR= && \
 	  $(MAKE) DESTDIR= install )
+
+##############
+# Cross-binutils
+##############
+
+BINUTILS_VERSION=2.31
+BINUTILS_URL="http://ftp.gnu.org/gnu/binutils"
+binutils-$(BINUTILS_VERSION).tar.gz:
+	$(FETCHER) $@ $(BINUTILS_URL)/$@
+
+binutils-$(BINUTILS_VERSION): binutils-$(BINUTILS_VERSION).tar.gz
+	tar xzf $<
+	touch $@
+
+#BINUTILS_STAMPFILE=$(CROSS_ROOT)/$(GNU_TARGET_ARCH)-xen-elf/lib/libc.a
+.PHONY: cross-binutils
+#cross-newlib: $(NEWLIB_STAMPFILE)
+#cross-binutils: mk-headers-$(XEN_TARGET_ARCH) binutils-$(BINUTILS_VERSION)
+cross-binutils: mk-headers-$(XEN_TARGET_ARCH)
+	mkdir -p binutils-$(XEN_TARGET_ARCH)
+	( cd binutils-$(XEN_TARGET_ARCH) && \
+	  CC_FOR_TARGET="$(CC) $(TARGET_CPPFLAGS) $(TARGET_CFLAGS) $(NEWLIB_CFLAGS)" \
+	  AR_FOR_TARGET=$(AR) \
+	  LD_FOR_TARGET=$(LD) \
+	  RANLIB_FOR_TARGET=$(RANLIB) \
+	  ../binutils-$(BINUTILS_VERSION)/configure \
+		--prefix=$(CROSS_PREFIX) \
+		--verbose \
+		--target=$(GNU_TARGET_ARCH)-xen-elf \
+		--enable-interwork \
+		--enable-multilib \
+		--disable-nls --disable-shared --disable-threads \
+		--with-sysroot=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf \
+		--with-gcc --with-gun-as --with-gnu-ld && \
+	  $(MAKE) DESTDIR= && \
+	  $(MAKE) DESTDIR= install )
+
+
+
+
+##############
+# Cross-mpfr
+##############
+#gmp: https://gmplib.org/download/gmp/gmp-6.1.2.tar.xz
+#mpfr: https://ftp.gnu.org/gnu/mpfr/mpfr-4.0.1.tar.xz
+#mpc: https://ftp.gnu.org/gnu/mpc/mpc-1.1.0.tar.gz
+
+#gcc: ftp://ftp.gnu.org/gnu/gcc/gcc-5.4.0/gcc-5.4.0.tar.gz
+
+MPFR_VERSION=4.0.1
+MPFR_URL="https://ftp.gnu.org/gnu/mpfr"
+mpfr-$(MPFR_VERSION).tar.xz:
+	$(FETCHER) $@ $(MPFR_URL)/$@
+
+mpfr-$(MPFR_VERSION): mpfr-$(MPFR_VERSION).tar.gz
+	tar xJf $<
+	touch $@
+
+#BINUTILS_STAMPFILE=$(CROSS_ROOT)/$(GNU_TARGET_ARCH)-xen-elf/lib/libc.a
+.PHONY: cross-mpfr
+#cross-newlib: $(NEWLIB_STAMPFILE)
+#cross-mpfr: cross-binutils mk-headers-$(XEN_TARGET_ARCH) mpfr-$(MPFR_VERSION)
+cross-mpfr: mk-headers-$(XEN_TARGET_ARCH)
+	mkdir -p mpfr-$(XEN_TARGET_ARCH)
+	( cd mpfr-$(XEN_TARGET_ARCH) && \
+	  CC_FOR_TARGET="$(CC) $(TARGET_CPPFLAGS) $(TARGET_CFLAGS) $(NEWLIB_CFLAGS)" \
+	  AR_FOR_TARGET=$(AR) \
+	  LD_FOR_TARGET=$(LD) \
+	  RANLIB_FOR_TARGET=$(RANLIB) \
+	  ../mpfr-$(MPFR_VERSION)/configure \
+		--prefix=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf \
+		--verbose \
+		--target=$(GNU_TARGET_ARCH)-xen-elf \
+		--enable-interwork \
+		--disable-multilib \
+		--enable-languages=c,c++ \
+		--with-newlib \
+		--disable-nls --disable-shared --disable-threads \
+		--with-gnu-as --with-gnu-ld \
+		--with-sysroot=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf && \
+	  $(MAKE) DESTDIR= && \
+	  $(MAKE) DESTDIR= install )
+
+		#--with-sysroot=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf
+
+
+
+##############
+# Cross-gcc
+##############
+
+#gmp: https://gmplib.org/download/gmp/gmp-6.1.2.tar.xz
+#mpfr: https://ftp.gnu.org/gnu/mpfr/mpfr-4.0.1.tar.xz
+#mpc: https://ftp.gnu.org/gnu/mpc/mpc-1.1.0.tar.gz
+
+#gcc: ftp://ftp.gnu.org/gnu/gcc/gcc-5.4.0/gcc-5.4.0.tar.gz
+
+GCC_VERSION=5.4.0
+GCC_URL="http://ftp.gnu.org/gnu/gcc/gcc-5.4.0"
+gcc-$(GCC_VERSION).tar.gz:
+	$(FETCHER) $@ $(GCC_URL)/$@
+
+gcc-$(GCC_VERSION): gcc-$(GCC_VERSION).tar.gz
+	tar xzf $<
+	touch $@
+
+#BINUTILS_STAMPFILE=$(CROSS_ROOT)/$(GNU_TARGET_ARCH)-xen-elf/lib/libc.a
+.PHONY: cross-gcc
+#cross-newlib: $(NEWLIB_STAMPFILE)
+#cross-gcc: cross-binutils mk-headers-$(XEN_TARGET_ARCH) gcc-$(GCC_VERSION)
+cross-gcc: mk-headers-$(XEN_TARGET_ARCH)
+	mkdir -p gcc-$(XEN_TARGET_ARCH)
+	( cd gcc-$(XEN_TARGET_ARCH) && \
+	  CC_FOR_TARGET="$(CC) $(TARGET_CPPFLAGS) $(TARGET_CFLAGS) $(NEWLIB_CFLAGS)" \
+	  AR_FOR_TARGET=$(AR) \
+	  LD_FOR_TARGET=$(LD) \
+	  RANLIB_FOR_TARGET=$(RANLIB) \
+	  ../gcc-$(GCC_VERSION)/configure \
+		--prefix=$(CROSS_PREFIX) \
+		--verbose \
+		--target=$(GNU_TARGET_ARCH)-xen-elf \
+		--enable-interwork \
+		--disable-multilib \
+		--enable-languages=c,c++ \
+		--with-newlib \
+		--disable-nls --disable-shared --disable-threads \
+		--with-gnu-as --with-gnu-ld \
+		--with-gmp=$(CURDIR)/gmp-6.1.2 \
+		--with-mpfr=$(CURDIR)/mpfr-4.0.1 \
+		--with-mpc=$(CURDIR)/mpc-1.1.0 \
+		--with-sysroot=$(XEN_ROOT)/extras/mini-os/include && \
+	  $(MAKE) DESTDIR= && \
+	  $(MAKE) DESTDIR= install )
+
+		#--with-sysroot=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf
 
 ##############
 # Cross-json-c
@@ -594,6 +729,14 @@ c: $(CROSS_ROOT) c-minios-config.mk
 	CPPFLAGS="$(TARGET_CPPFLAGS) $(shell cat c-minios-config.mk)" CFLAGS="$(TARGET_CFLAGS)" $(MAKE) DESTDIR= -C $@ LWIPDIR=$(CURDIR)/lwip-$(XEN_TARGET_ARCH) 
 
 
+# tinycpp, a minios with c++ 
+tinycpp-minios-config.mk: $(CURDIR)/tinycpp/minios.cfg
+	MINIOS_CONFIG="$<" CONFIG_FILE="$(CURDIR)/$@" $(MAKE) DESTDIR= -C $(MINI_OS) config
+
+.PHONY: tinycpp
+tinycpp: $(CROSS_ROOT) tinycpp-minios-config.mk
+	CPPFLAGS="$(TARGET_CPPFLAGS) $(shell cat tinycpp-minios-config.mk)" CFLAGS="$(TARGET_CFLAGS)" $(MAKE) DESTDIR= -C $@ LWIPDIR=$(CURDIR)/lwip-$(XEN_TARGET_ARCH) 
+
 # tinynet, a minios with network capability
 tinynet-minios-config.mk: $(CURDIR)/tinynet/minios.cfg
 	MINIOS_CONFIG="$<" CONFIG_FILE="$(CURDIR)/$@" $(MAKE) DESTDIR= -C $(MINI_OS) config
@@ -686,6 +829,12 @@ caml-stubdom: mini-os-$(XEN_TARGET_ARCH)-caml lwip-$(XEN_TARGET_ARCH) libxc cros
 .PHONY: c-stubdom
 c-stubdom: mini-os-$(XEN_TARGET_ARCH)-c lwip-$(XEN_TARGET_ARCH) libxc c
 	DEF_CPPFLAGS="$(TARGET_CPPFLAGS)" DEF_CFLAGS="$(TARGET_CFLAGS)" DEF_LDFLAGS="$(TARGET_LDFLAGS)" MINIOS_CONFIG="$(CURDIR)/c/minios.cfg" $(MAKE) DESTDIR= -C $(MINI_OS) OBJ_DIR=$(CURDIR)/$< LWIPDIR=$(CURDIR)/lwip-$(XEN_TARGET_ARCH) APP_OBJS=$(CURDIR)/c/main.a
+
+
+## added 20180807, lele
+.PHONY: tinycpp-stubdom
+tinycpp-stubdom: mini-os-$(XEN_TARGET_ARCH)-tinycpp lwip-$(XEN_TARGET_ARCH) libxc tinycpp
+	DEF_CPPFLAGS="$(TARGET_CPPFLAGS)" DEF_CFLAGS="$(TARGET_CFLAGS)" DEF_LDFLAGS="$(TARGET_LDFLAGS)" MINIOS_CONFIG="$(CURDIR)/c/minios.cfg" $(MAKE) DESTDIR= -C $(MINI_OS) OBJ_DIR=$(CURDIR)/$< LWIPDIR=$(CURDIR)/lwip-$(XEN_TARGET_ARCH) APP_OBJS=$(CURDIR)/tinycpp/main.a
 
 
 ## added 20180730, lele
@@ -799,6 +948,7 @@ clean:
 	rm -fr mini-os-$(XEN_TARGET_ARCH)-c
 	rm -fr mini-os-$(XEN_TARGET_ARCH)-tinyvmi #lele, 2018.02.18
 	rm -fr mini-os-$(XEN_TARGET_ARCH)-tinynet #lele, 2018.07.30
+	rm -fr mini-os-$(XEN_TARGET_ARCH)-tinycpp #lele, 2018.08.07
 	rm -fr mini-os-$(XEN_TARGET_ARCH)-caml
 	rm -fr mini-os-$(XEN_TARGET_ARCH)-grub
 	rm -fr mini-os-$(XEN_TARGET_ARCH)-xenstore
