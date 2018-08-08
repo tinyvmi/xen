@@ -5,7 +5,7 @@
 	path = stubdom/tinynet
 	url = https://github.com/tinyvmi/tinynet.git
 [submodule "extras/mini-os"]
-	path = extras/mini-os
+	path = extras/mini-os-remote
 	url = https://github.com/tinyvmi/mini-os.git
 [submodule "tools/qemu-xen"]
 	path = tools/qemu-xen
