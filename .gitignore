@@ -9,6 +9,7 @@ stubdom/mpc-1.1.0/
 stubdom/mpfr-4.0.1.tar.xz
 stubdom/mpfr-4.0.1/
 stubdom/mpfr-x86_64/
+stubdom/IncludeOS/
 
 tools/flask/policy/modules/dom0_old.te
 tools/flask/policy/modules/domU_old.te
