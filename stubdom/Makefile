@@ -127,7 +127,7 @@ $(BINUTILS_STAMPFILE): mk-headers-$(XEN_TARGET_ARCH) binutils-$(BINUTILS_VERSION
 	  LD_FOR_TARGET=$(LD) \
 	  RANLIB_FOR_TARGET=$(RANLIB) \
 	  ../binutils-$(BINUTILS_VERSION)/configure \
-		--prefix=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf \
+		--prefix=$(CROSS_PREFIX) \
 		--verbose \
 		--target=$(GNU_TARGET_ARCH)-xen-elf \
 		--enable-interwork \
@@ -255,7 +255,12 @@ gcc-$(GCC_VERSION): gcc-$(GCC_VERSION).tar.gz
 GCC_STAMPFILE=$(CROSS_ROOT)/$(GNU_TARGET_ARCH)-xen-elf/bin/$(GNU_TARGET_ARCH)-xen-elf-gcc
 .PHONY: cross-gcc
 cross-gcc: $(GCC_STAMPFILE)
+	@echo "stamp file: $(GCC_STAMPFILE)"
 
+# todo: change prefix;
+# todo: change bin dirs accordingly 
+# --enable-interwork ?
+# maybe using 3 stage compile ?
 $(GCC_STAMPFILE): cross-binutils mk-headers-$(XEN_TARGET_ARCH) gcc-$(GCC_VERSION) $(NEWLIB_STAMPFILE)
 	mkdir -p gcc-$(XEN_TARGET_ARCH)
 	( cd gcc-$(XEN_TARGET_ARCH) && \
@@ -266,7 +271,7 @@ $(GCC_STAMPFILE): cross-binutils mk-headers-$(XEN_TARGET_ARCH) gcc-$(GCC_VERSION
 	  LD_FOR_TARGET=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf/bin/$(GNU_TARGET_ARCH)-xen-elf-ld  \
 	  RANLIB_FOR_TARGET=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf/bin/$(GNU_TARGET_ARCH)-xen-elf-ranlib \
 	  ../gcc-$(GCC_VERSION)/configure \
-		--prefix=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf \
+		--prefix=$(CROSS_PREFIX) \
 		--verbose \
 		--target=$(GNU_TARGET_ARCH)-xen-elf \
 		--disable-multilib \
@@ -275,16 +280,19 @@ $(GCC_STAMPFILE): cross-binutils mk-headers-$(XEN_TARGET_ARCH) gcc-$(GCC_VERSION
 		--disable-nls \
 		--disable-shared --disable-threads \
 		--with-gnu-as \
-		--with-as=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf/$(GNU_TARGET_ARCH)-xen-elf/bin/as \
+		--with-as=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf/bin/$(GNU_TARGET_ARCH)-xen-elf-as \
 		--with-gnu-ld \
-		--with-ld=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf/$(GNU_TARGET_ARCH)-xen-elf/bin/ld \
-		--without-headers \
-		--with-sysroot=$(XEN_ROOT)/extras/mini-os/include && \
+		--with-ld=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf/bin/$(GNU_TARGET_ARCH)-xen-elf-ld \
+		--with-sysroot=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf && \
 	  $(MAKE) DESTDIR= all-gcc && \
 	  $(MAKE) DESTDIR= all-target-libgcc && \
 	  $(MAKE) DESTDIR= install-gcc && \
-	  $(MAKE) DESTDIR= install-target-libgcc )
+	  $(MAKE) DESTDIR= install-target-libgcc && \
+	  $(MAKE) DESTDIR= && \
+	  $(MAKE) DESTDIR= install )
 
+		# --with-sysroot=$(XEN_ROOT)/extras/mini-os/include && \
+		# --without-headers \
 		# --with-gnu-as --with-gnu-ld \
 		# --host=$(GNU_TARGET_ARCH)-xen-elf \
 		# --enable-interwork \
