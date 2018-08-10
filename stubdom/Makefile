@@ -288,7 +288,7 @@ $(GCC_STAMPFILE): cross-binutils mk-headers-$(XEN_TARGET_ARCH) gcc-$(GCC_VERSION
 		--prefix=$(CROSS_PREFIX) \
 		--verbose \
 		--target=$(GNU_TARGET_ARCH)-xen-elf \
-		--disable-multilib \
+		--enable-multilib \
 		--enable-languages=c,c++ \
 		--with-newlib \
 		--disable-nls \
@@ -305,6 +305,7 @@ $(GCC_STAMPFILE): cross-binutils mk-headers-$(XEN_TARGET_ARCH) gcc-$(GCC_VERSION
 	  $(MAKE) DESTDIR= && \
 	  $(MAKE) DESTDIR= install )
 
+		# --disable-multilib \
 		# --with-sysroot=$(XEN_ROOT)/extras/mini-os/include && \
 		# --without-headers \
 		# --with-gnu-as --with-gnu-ld \
@@ -592,7 +593,7 @@ $(OCAML_STAMPFILE): ocaml-$(XEN_TARGET_ARCH)/.dirstamp
 #######
 
 .PHONY: $(CROSS_ROOT)
-$(CROSS_ROOT): cross-newlib cross-zlib cross-libpci cross-json-c cross-jansson
+$(CROSS_ROOT): cross-newlib cross-zlib cross-libpci cross-json-c cross-jansson cross-binutils
 
 QEMU_ROOT := $(shell if [ -d "$(QEMU_TRADITIONAL_LOC)" ]; then echo "$(QEMU_TRADITIONAL_LOC)"; else echo .; fi)
 
@@ -813,7 +814,8 @@ tinycpp-minios-config.mk: $(CURDIR)/tinycpp/minios.cfg
 	MINIOS_CONFIG="$<" CONFIG_FILE="$(CURDIR)/$@" $(MAKE) DESTDIR= -C $(MINI_OS) config
 
 .PHONY: tinycpp
-tinycpp: $(CROSS_ROOT) cross-gcc tinycpp-minios-config.mk
+#tinycpp: $(CROSS_ROOT) cross-gcc tinycpp-minios-config.mk
+tinycpp: $(CROSS_ROOT) tinycpp-minios-config.mk
 	CPPFLAGS="$(TARGET_CPPFLAGS) $(shell cat tinycpp-minios-config.mk)" CFLAGS="$(TARGET_CFLAGS)" $(MAKE) DESTDIR= -C $@ LWIPDIR=$(CURDIR)/lwip-$(XEN_TARGET_ARCH) 
 
 # tinynet, a minios with network capability

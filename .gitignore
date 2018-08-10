@@ -5,6 +5,8 @@ stubdom/json-c-x86_64/
 stubdom/tinyvmi-*/
 stubdom/iconv-x86_64/
 stubdom/jansson-x86_64/
+stubdom/jansson-x86_32/
+stubdom/json-c-x86_32/
 stubdom/mpc-1.1.0/
 stubdom/mpfr-4.0.1.tar.xz
 stubdom/mpfr-4.0.1/
