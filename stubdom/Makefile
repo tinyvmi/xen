@@ -56,10 +56,18 @@ TARGET_CPPFLAGS += -isystem $(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf/include
 TARGET_CPPFLAGS += -isystem $(GCC_INSTALL)include
 TARGET_CPPFLAGS += -isystem $(CURDIR)/lwip-$(XEN_TARGET_ARCH)/src/include
 TARGET_CPPFLAGS += -isystem $(CURDIR)/lwip-$(XEN_TARGET_ARCH)/src/include/ipv4
+
+# added for c++
+TARGET_CPPFLAGS += -isystem $(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf/include/c++/5.4.0
+
 TARGET_CPPFLAGS += -I$(CURDIR)/include
 TARGET_CPPFLAGS += -I$(XEN_ROOT)/xen/include
 
 TARGET_LDFLAGS += -nostdlib -L$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf/lib
+
+# added for c++ compilation
+# todo: fix version in stubdom/configure
+TARGET_LDFLAGS+= -L$(CROSS_PREFIX)/lib/gcc/$(GNU_TARGET_ARCH)-xen-elf/5.4.0 -lgcc -lstdc++
 
 # TARGETS=$(STUBDOM_TARGETS) c xenstore tinyvmi tinynet
 
@@ -116,7 +124,7 @@ binutils-$(BINUTILS_VERSION): binutils-$(BINUTILS_VERSION).tar.gz
 	tar xzf $<
 	#touch $@
 
-BINUTILS_STAMPFILE=$(CROSS_ROOT)/$(GNU_TARGET_ARCH)-xen-elf/bin/$(GNU_TARGET_ARCH)-xen-elf-ar
+BINUTILS_STAMPFILE=$(CROSS_ROOT)/$(GNU_TARGET_ARCH)-xen-elf/bin/ar
 .PHONY: cross-binutils
 cross-binutils: $(BINUTILS_STAMPFILE)
 $(BINUTILS_STAMPFILE): mk-headers-$(XEN_TARGET_ARCH) binutils-$(BINUTILS_VERSION) $(NEWLIB_STAMPFILE)
@@ -141,6 +149,52 @@ $(BINUTILS_STAMPFILE): mk-headers-$(XEN_TARGET_ARCH) binutils-$(BINUTILS_VERSION
 
 
 # ##############
+# # Cross-mpfr
+# ##############
+# #gmp: https://gmplib.org/download/gmp/gmp-6.1.2.tar.xz
+# #mpfr: https://ftp.gnu.org/gnu/mpfr/mpfr-4.0.1.tar.xz
+# #mpc: https://ftp.gnu.org/gnu/mpc/mpc-1.1.0.tar.gz
+
+# #gcc: ftp://ftp.gnu.org/gnu/gcc/gcc-5.4.0/gcc-5.4.0.tar.gz
+
+# MPFR_VERSION=4.0.1
+# MPFR_URL="https://ftp.gnu.org/gnu/mpfr"
+# mpfr-$(MPFR_VERSION).tar.xz:
+# 	$(FETCHER) $@ $(MPFR_URL)/$@
+
+# mpfr-$(MPFR_VERSION): mpfr-$(MPFR_VERSION).tar.gz
+# 	tar xJf $<
+# 	touch $@
+
+# MPFR_STAMPFILE=$(CROSS_ROOT)/$(GNU_TARGET_ARCH)-xen-elf/lib/libc.a
+# .PHONY: cross-mpfr
+# #cross-newlib: $(NEWLIB_STAMPFILE)
+# cross-mpfr: $(MPFR_STAMPFILE)
+# #cross-mpfr: cross-binutils mk-headers-$(XEN_TARGET_ARCH) mpfr-$(MPFR_VERSION)
+# # cross-mpfr: mk-headers-$(XEN_TARGET_ARCH)
+# $(MPFR_STAMPFILE): mk-headers-$(XEN_TARGET_ARCH) mpfr-$(MPFR_VERSION)
+# 	mkdir -p mpfr-$(XEN_TARGET_ARCH)
+# 	mkdir -p $(CROSS_PREFIX)/mpfr
+# 	( cd mpfr-$(XEN_TARGET_ARCH) && \
+# 	  CC_FOR_TARGET="$(CC) $(TARGET_CPPFLAGS) $(TARGET_CFLAGS) $(NEWLIB_CFLAGS)" \
+# 	  AR_FOR_TARGET=$(AR) \
+# 	  LD_FOR_TARGET=$(LD) \
+# 	  RANLIB_FOR_TARGET=$(RANLIB) \
+# 	  ../mpfr-$(MPFR_VERSION)/configure \
+# 		--prefix=$(CROSS_PREFIX)/mpfr \
+# 		--verbose \
+# 		--target=$(GNU_TARGET_ARCH)-xen-elf \
+# 		--disable-shared \
+# 		--with-gnu-ld \
+# 		--with-gmp=$(CROSS_PREFIX)/gmp \
+# 		--with-sysroot=$(CROSS_PREFIX) && \
+# 	  $(MAKE) DESTDIR= && \
+# 	  $(MAKE) DESTDIR= install )
+
+# 		#--with-sysroot=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf
+
+
+# ##############
 # # Cross-mpc
 # ##############
 
@@ -159,22 +213,24 @@ $(BINUTILS_STAMPFILE): mk-headers-$(XEN_TARGET_ARCH) binutils-$(BINUTILS_VERSION
 # 	tar xzf $<
 # 	touch $@
 
-# #BINUTILS_STAMPFILE=$(CROSS_ROOT)/$(GNU_TARGET_ARCH)-xen-elf/lib/libc.a
+# MPC_STAMPFILE=$(CROSS_ROOT)/mpc/lib/libmpc.a
 # .PHONY: cross-mpc
 # #cross-newlib: $(NEWLIB_STAMPFILE)
 # #cross-mpc: cross-binutils mk-headers-$(XEN_TARGET_ARCH) mpc-$(MPC_VERSION)
 # cross-mpc: mk-headers-$(XEN_TARGET_ARCH)
 # 	mkdir -p mpc-$(XEN_TARGET_ARCH)
+# 	mkdir -p $(CROSS_PREFIX)/mpc
 # 	( cd mpc-$(XEN_TARGET_ARCH) && \
 # 	  CC="$(CC)" \
 # 	  CFLAGS="$(TARGET_CFLAGS) $(NEWLIB_CFLAGS)" \
 # 	  CPPFLAGS="$(TARGET_CPPFLAGS)" \
 # 	  ../mpc-$(MPC_VERSION)/configure \
-# 		--prefix=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf \
+# 		--prefix=$(CROSS_PREFIX)/mpc \
 # 		--host=$(GNU_TARGET_ARCH)-xen-elf \
 # 		--disable-shared \
 # 		--disable-fast-install \
-# 		--with-mpfr=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf \
+# 		--with-gmp=$(CROSS_PREFIX)/gmp\
+# 		--with-mpfr=$(CROSS_PREFIX)/mpfr\
 # 		--with-gnu-ld \
 # 		--with-sysroot=$(XEN_ROOT)/extras/mini-os/include && \
 # 	  $(MAKE) DESTDIR= && \
@@ -188,48 +244,6 @@ $(BINUTILS_STAMPFILE): mk-headers-$(XEN_TARGET_ARCH) binutils-$(BINUTILS_VERSION
 # 		# --with-sysroot=$(XEN_ROOT)/extras/mini-os/include
 # 		# --with-gmp=$(CURDIR)/gmp-6.1.2 \
 # 		#--with-sysroot=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf
-
-# ##############
-# # Cross-mpfr
-# ##############
-# #gmp: https://gmplib.org/download/gmp/gmp-6.1.2.tar.xz
-# #mpfr: https://ftp.gnu.org/gnu/mpfr/mpfr-4.0.1.tar.xz
-# #mpc: https://ftp.gnu.org/gnu/mpc/mpc-1.1.0.tar.gz
-
-# #gcc: ftp://ftp.gnu.org/gnu/gcc/gcc-5.4.0/gcc-5.4.0.tar.gz
-
-# MPFR_VERSION=4.0.1
-# MPFR_URL="https://ftp.gnu.org/gnu/mpfr"
-# mpfr-$(MPFR_VERSION).tar.xz:
-# 	$(FETCHER) $@ $(MPFR_URL)/$@
-
-# mpfr-$(MPFR_VERSION): mpfr-$(MPFR_VERSION).tar.gz
-# 	tar xJf $<
-# 	touch $@
-
-# #BINUTILS_STAMPFILE=$(CROSS_ROOT)/$(GNU_TARGET_ARCH)-xen-elf/lib/libc.a
-# .PHONY: cross-mpfr
-# #cross-newlib: $(NEWLIB_STAMPFILE)
-# #cross-mpfr: cross-binutils mk-headers-$(XEN_TARGET_ARCH) mpfr-$(MPFR_VERSION)
-# cross-mpfr: mk-headers-$(XEN_TARGET_ARCH)
-# 	mkdir -p mpfr-$(XEN_TARGET_ARCH)
-# 	( cd mpfr-$(XEN_TARGET_ARCH) && \
-# 	  CC_FOR_TARGET="$(CC) $(TARGET_CPPFLAGS) $(TARGET_CFLAGS) $(NEWLIB_CFLAGS)" \
-# 	  AR_FOR_TARGET=$(AR) \
-# 	  LD_FOR_TARGET=$(LD) \
-# 	  RANLIB_FOR_TARGET=$(RANLIB) \
-# 	  ../mpfr-$(MPFR_VERSION)/configure \
-# 		--prefix=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf \
-# 		--verbose \
-# 		--target=$(GNU_TARGET_ARCH)-xen-elf \
-# 		--disable-shared \
-# 		--with-gnu-ld \
-# 		--with-sysroot=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf && \
-# 	  $(MAKE) DESTDIR= && \
-# 	  $(MAKE) DESTDIR= install )
-
-# 		#--with-sysroot=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf
-
 
 
 ##############
@@ -252,24 +266,24 @@ gcc-$(GCC_VERSION): gcc-$(GCC_VERSION).tar.gz
 	cd $@ && ./contrib/download_prerequisites
 	touch $@
 
-GCC_STAMPFILE=$(CROSS_ROOT)/$(GNU_TARGET_ARCH)-xen-elf/bin/$(GNU_TARGET_ARCH)-xen-elf-gcc
+GCC_STAMPFILE=$(CROSS_ROOT)/lib/gcc/$(GNU_TARGET_ARCH)-xen-elf/$(GCC_VERSION)/libgcc.a
 .PHONY: cross-gcc
 cross-gcc: $(GCC_STAMPFILE)
-	@echo "stamp file: $(GCC_STAMPFILE)"
 
 # todo: change prefix;
 # todo: change bin dirs accordingly 
 # --enable-interwork ?
 # maybe using 3 stage compile ?
-$(GCC_STAMPFILE): cross-binutils mk-headers-$(XEN_TARGET_ARCH) gcc-$(GCC_VERSION) $(NEWLIB_STAMPFILE)
+# add -isystem /usr/include/c++/5 for iostream? 
+$(GCC_STAMPFILE): cross-binutils mk-headers-$(XEN_TARGET_ARCH) gcc-$(GCC_VERSION) $(NEWLIB_STAMPFILE) 
 	mkdir -p gcc-$(XEN_TARGET_ARCH)
 	( cd gcc-$(XEN_TARGET_ARCH) && \
-	  PATH=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf/bin:$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf/$(GNU_TARGET_ARCH)-xen-elf/bin:$(PATH) \
+	  PATH=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf/bin:$(CROSS_PREFIX)/bin:$(PATH) \
 	  CC_FOR_TARGET="$(CC) $(TARGET_CPPFLAGS) $(TARGET_CFLAGS) $(NEWLIB_CFLAGS)" \
 	  AR=$(AR) \
-	  AR_FOR_TARGET=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf/bin/$(GNU_TARGET_ARCH)-xen-elf-ar \
-	  LD_FOR_TARGET=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf/bin/$(GNU_TARGET_ARCH)-xen-elf-ld  \
-	  RANLIB_FOR_TARGET=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf/bin/$(GNU_TARGET_ARCH)-xen-elf-ranlib \
+	  AR_FOR_TARGET=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf/bin/ar \
+	  LD_FOR_TARGET=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf/bin/ld  \
+	  RANLIB_FOR_TARGET=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf/bin/ranlib \
 	  ../gcc-$(GCC_VERSION)/configure \
 		--prefix=$(CROSS_PREFIX) \
 		--verbose \
@@ -280,9 +294,9 @@ $(GCC_STAMPFILE): cross-binutils mk-headers-$(XEN_TARGET_ARCH) gcc-$(GCC_VERSION
 		--disable-nls \
 		--disable-shared --disable-threads \
 		--with-gnu-as \
-		--with-as=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf/bin/$(GNU_TARGET_ARCH)-xen-elf-as \
+		--with-as=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf/bin/as \
 		--with-gnu-ld \
-		--with-ld=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf/bin/$(GNU_TARGET_ARCH)-xen-elf-ld \
+		--with-ld=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf/bin/ld \
 		--with-sysroot=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf && \
 	  $(MAKE) DESTDIR= all-gcc && \
 	  $(MAKE) DESTDIR= all-target-libgcc && \
@@ -296,9 +310,9 @@ $(GCC_STAMPFILE): cross-binutils mk-headers-$(XEN_TARGET_ARCH) gcc-$(GCC_VERSION
 		# --with-gnu-as --with-gnu-ld \
 		# --host=$(GNU_TARGET_ARCH)-xen-elf \
 		# --enable-interwork \
-		# --with-mpfr=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf \
-		# --with-mpc=$(CURDIR)/mpc-1.0.1 \
-		# --with-gmp=$(CURDIR)/gmp-6.1.2 \
+		# --with-gmp=$(CROSS_PREFIX)/gmp \
+		# --with-mpfr=$(CROSS_PREFIX)/mpfr \
+		# --with-mpc=$(CROSS_PREFIX)/mpc \
 		#--with-sysroot=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf
 
 ##############
