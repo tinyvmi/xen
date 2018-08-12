@@ -122,7 +122,7 @@ binutils-$(BINUTILS_VERSION).tar.gz:
 
 binutils-$(BINUTILS_VERSION): binutils-$(BINUTILS_VERSION).tar.gz
 	tar xzf $<
-	#touch $@
+	touch $@
 
 BINUTILS_STAMPFILE=$(CROSS_ROOT)/$(GNU_TARGET_ARCH)-xen-elf/bin/ar
 .PHONY: cross-binutils
@@ -403,7 +403,7 @@ TARGET_CFLAGS += -Wno-error
 libiconv-$(ICONV_VERSION).tar.gz:
 	$(FETCHER) $@ $(ICONV_URL)/$@
 
-iconv-$(XEN_TARGET_ARCH): libiconv-$(ICONV_VERSION).tar.gz
+libiconv-$(XEN_TARGET_ARCH): libiconv-$(ICONV_VERSION).tar.gz
 	tar xzf $<
 	mv libiconv-$(ICONV_VERSION) $@
 
@@ -411,7 +411,7 @@ ICONV_STAMPFILE=$(CROSS_ROOT)/$(GNU_TARGET_ARCH)-xen-elf/lib/libiconv.a
 .PHONY: cross-iconv
 cross-iconv: $(ICONV_STAMPFILE)
 $(ICONV_STAMPFILE): iconv-$(XEN_TARGET_ARCH) $(NEWLIB_STAMPFILE)
-	( cd iconv-$(XEN_TARGET_ARCH) && \
+	( cd libiconv-$(XEN_TARGET_ARCH) && \
 	  CFLAGS="$(TARGET_CPPFLAGS) $(TARGET_CFLAGS)" CC=$(CC) \
 	  ./configure --prefix=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf \
 		  --host=$(GNU_TARGET_ARCH)-xen-elf \
@@ -1088,6 +1088,13 @@ patchclean: crossclean
 	rm -fr tpm_emulator-$(XEN_TARGET_ARCH)
 	rm -fr lwip-$(XEN_TARGET_ARCH)
 	rm -fr grub-upstream
+	rm -fr json-c-$(XEN_TARGET_ARCH)
+	rm -fr jansson-$(XEN_TARGET_ARCH)
+	rm -fr libiconv-$(XEN_TARGET_ARCH)
+	rm -fr binutils-$(XEN_TARGET_ARCH)
+	rm -fr binutils-$(BINUTILS_VERSION)
+	rm -fr gcc-$(XEN_TARGET_ARCH)
+	rm -fr gcc-$(GCC_VERSION)
 
 # clean downloads
 .PHONY: downloadclean
@@ -1098,10 +1105,16 @@ downloadclean: patchclean
 	rm -f tpm_emulator-$(TPMEMU_VERSION).tar.gz
 	rm -f pciutils-$(LIBPCI_VERSION).tar.bz2
 	rm -f grub-$(GRUB_VERSION).tar.gz
-	rm -f lwip-$(LWIP_VERSION).tar.gz
+	# rm -f lwip-$(LWIP_VERSION).tar.gz
+	rm -f lwip-$(LWIP_VERSION).zip
 	rm -f ocaml-$(OCAML_VERSION).tar.gz
 	rm -f polarssl-$(POLARSSL_VERSION)-gpl.tgz
 	rm -f openssl-$(POLARSSL_VERSION)-gpl.tgz
+	rm -f json-c-$(JSON_C_VERSION).tar.gz
+	rm -f jansson-$(JANSSON_VERSION).tar.gz
+	rm -f libiconv-$(ICONV_VERSION).tar.gz
+	rm -f binutils-$(BINUTILS_VERSION).tar.gz
+	rm -f gcc-$(GCC_VERSION).tar.gz
 
 .PHONY: distclean
 distclean: downloadclean
