@@ -267,13 +267,13 @@ $(NEWLIB_PATCH_FOR_GCC): $(CURDIR)/gcc-newlib-patch/libgcc_newlib_patch.o
 #gcc: ftp://ftp.gnu.org/gnu/gcc/gcc-5.4.0/gcc-5.4.0.tar.gz
 
 GCC_VERSION=5.4.0
-GCC_URL="http://ftp.gnu.org/gnu/gcc/gcc-5.4.0"
+GCC_URL="http://ftp.gnu.org/gnu/gcc/gcc-$(GCC_VERSION)"
 gcc-$(GCC_VERSION).tar.gz:
 	$(FETCHER) $@ $(GCC_URL)/$@
 
 gcc-$(GCC_VERSION): gcc-$(GCC_VERSION).tar.gz
 	tar xzf $<
-	cd $@ && ./contrib/download_prerequisites
+	cd $@ && ./contrib/download_prerequisites && cd -
 	touch $@
 
 # TODO: this stampfile is not valid for make, 
@@ -283,7 +283,7 @@ GCC_STAMPFILE=$(CROSS_ROOT)/lib/gcc/$(GNU_TARGET_ARCH)-xen-elf/$(GCC_VERSION)/li
 .PHONY: cross-gcc
 cross-gcc: $(GCC_STAMPFILE)
 
-$(GCC_STAMPFILE): cross-binutils mk-headers-$(XEN_TARGET_ARCH) gcc-$(GCC_VERSION) $(NEWLIB_STAMPFILE) $(NEWLIB_PATCH_FOR_GCC)
+$(GCC_STAMPFILE): mk-headers-$(XEN_TARGET_ARCH) gcc-$(GCC_VERSION) $(NEWLIB_STAMPFILE) $(BINUTILS_STAMPFILE)
 	mkdir -p gcc-$(XEN_TARGET_ARCH)
 	( cd gcc-$(XEN_TARGET_ARCH) && \
 	  PATH=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf/bin:$(CROSS_PREFIX)/bin:$(PATH) \
@@ -822,8 +822,8 @@ tinycpp-minios-config.mk: $(CURDIR)/tinycpp/minios.cfg
 	MINIOS_CONFIG="$<" CONFIG_FILE="$(CURDIR)/$@" $(MAKE) DESTDIR= -C $(MINI_OS) config
 
 .PHONY: tinycpp
-#tinycpp: $(CROSS_ROOT) cross-gcc tinycpp-minios-config.mk
-tinycpp: $(CROSS_ROOT) tinycpp-minios-config.mk $(NEWLIB_PATCH_FOR_GCC)
+#tinycpp: $(CROSS_ROOT) $(NEWLIB_PATCH_FOR_GCC) tinycpp-minios-config.mk 
+tinycpp: $(CROSS_ROOT) cross-gcc $(NEWLIB_PATCH_FOR_GCC) tinycpp-minios-config.mk
 	CPPFLAGS="$(TARGET_CPPFLAGS) $(shell cat tinycpp-minios-config.mk)" CFLAGS="$(TARGET_CFLAGS)" $(MAKE) DESTDIR= -C $@ LWIPDIR=$(CURDIR)/lwip-$(XEN_TARGET_ARCH) 
 
 # tinynet, a minios with network capability
@@ -843,7 +843,7 @@ tinyvmi-minios-config.mk: $(CURDIR)/tinyvmi/minios.cfg
 
 .PHONY: tinyvmi
 # tinyvmi: cross-iconv cross-jansson cross-json-c cross-newlib $(CROSS_ROOT) tinyvmi-minios-config.mk
-tinyvmi: cross-newlib $(CROSS_ROOT) tinyvmi-minios-config.mk
+tinyvmi: cross-newlib $(CROSS_ROOT) tinyvmi-minios-config.mk $(NEWLIB_PATCH_FOR_GCC)
 	CPPFLAGS="$(TARGET_CPPFLAGS) $(shell cat c-minios-config.mk)" CFLAGS="$(TARGET_CFLAGS)" $(MAKE) DESTDIR= -C $@ LWIPDIR=$(CURDIR)/lwip-$(XEN_TARGET_ARCH) 
 
 
