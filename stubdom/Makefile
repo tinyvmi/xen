@@ -67,7 +67,7 @@ TARGET_LDFLAGS += -nostdlib -L$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf/lib
 
 # added for c++ compilation
 # todo: fix version in stubdom/configure
-TARGET_LDFLAGS+= -L$(CROSS_PREFIX)/lib/gcc/$(GNU_TARGET_ARCH)-xen-elf/5.4.0 -lgcc -lstdc++
+# TARGET_LDFLAGS+= -L$(CROSS_PREFIX)/lib/gcc/$(GNU_TARGET_ARCH)-xen-elf/5.4.0 -lgcc -lstdc++
 
 # TARGETS=$(STUBDOM_TARGETS) c xenstore tinyvmi tinynet
 
@@ -246,6 +246,16 @@ $(BINUTILS_STAMPFILE): mk-headers-$(XEN_TARGET_ARCH) binutils-$(BINUTILS_VERSION
 # 		#--with-sysroot=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf
 
 
+###########
+# gcc-newlib-patch
+NEWLIB_PATCH_FOR_GCC=$(CURDIR)/gcc-newlib-patch/libgcc_newlib_patch.a
+
+$(CURDIR)/gcc-newlib-patch/libgcc_newlib_patch.o: $(CURDIR)/gcc-newlib-patch/patch.c
+	$(CC) $(TARGET_CPPFLAGS) $(TARGET_CFLAGS) $(NEWLIB_CFLAGS) -c -o $@ $<
+
+$(NEWLIB_PATCH_FOR_GCC): $(CURDIR)/gcc-newlib-patch/libgcc_newlib_patch.o
+	$(AR) cr $@ $^
+
 ##############
 # Cross-gcc
 ##############
@@ -266,16 +276,14 @@ gcc-$(GCC_VERSION): gcc-$(GCC_VERSION).tar.gz
 	cd $@ && ./contrib/download_prerequisites
 	touch $@
 
+# TODO: this stampfile is not valid for make, 
+# even without any changes to gcc, gcc will be 'recompiled' instead of keep the old build.
+# why?
 GCC_STAMPFILE=$(CROSS_ROOT)/lib/gcc/$(GNU_TARGET_ARCH)-xen-elf/$(GCC_VERSION)/libgcc.a
 .PHONY: cross-gcc
 cross-gcc: $(GCC_STAMPFILE)
 
-# todo: change prefix;
-# todo: change bin dirs accordingly 
-# --enable-interwork ?
-# maybe using 3 stage compile ?
-# add -isystem /usr/include/c++/5 for iostream? 
-$(GCC_STAMPFILE): cross-binutils mk-headers-$(XEN_TARGET_ARCH) gcc-$(GCC_VERSION) $(NEWLIB_STAMPFILE) 
+$(GCC_STAMPFILE): cross-binutils mk-headers-$(XEN_TARGET_ARCH) gcc-$(GCC_VERSION) $(NEWLIB_STAMPFILE) $(NEWLIB_PATCH_FOR_GCC)
 	mkdir -p gcc-$(XEN_TARGET_ARCH)
 	( cd gcc-$(XEN_TARGET_ARCH) && \
 	  PATH=$(CROSS_PREFIX)/$(GNU_TARGET_ARCH)-xen-elf/bin:$(CROSS_PREFIX)/bin:$(PATH) \
@@ -815,7 +823,7 @@ tinycpp-minios-config.mk: $(CURDIR)/tinycpp/minios.cfg
 
 .PHONY: tinycpp
 #tinycpp: $(CROSS_ROOT) cross-gcc tinycpp-minios-config.mk
-tinycpp: $(CROSS_ROOT) tinycpp-minios-config.mk
+tinycpp: $(CROSS_ROOT) tinycpp-minios-config.mk $(NEWLIB_PATCH_FOR_GCC)
 	CPPFLAGS="$(TARGET_CPPFLAGS) $(shell cat tinycpp-minios-config.mk)" CFLAGS="$(TARGET_CFLAGS)" $(MAKE) DESTDIR= -C $@ LWIPDIR=$(CURDIR)/lwip-$(XEN_TARGET_ARCH) 
 
 # tinynet, a minios with network capability
@@ -914,8 +922,8 @@ c-stubdom: mini-os-$(XEN_TARGET_ARCH)-c lwip-$(XEN_TARGET_ARCH) libxc c
 
 ## added 20180807, lele
 .PHONY: tinycpp-stubdom
-tinycpp-stubdom: mini-os-$(XEN_TARGET_ARCH)-tinycpp lwip-$(XEN_TARGET_ARCH) libxc tinycpp
-	DEF_CPPFLAGS="$(TARGET_CPPFLAGS)" DEF_CFLAGS="$(TARGET_CFLAGS)" DEF_LDFLAGS="$(TARGET_LDFLAGS)" MINIOS_CONFIG="$(CURDIR)/c/minios.cfg" $(MAKE) DESTDIR= -C $(MINI_OS) OBJ_DIR=$(CURDIR)/$< LWIPDIR=$(CURDIR)/lwip-$(XEN_TARGET_ARCH) APP_OBJS=$(CURDIR)/tinycpp/main.a
+tinycpp-stubdom: mini-os-$(XEN_TARGET_ARCH)-tinycpp lwip-$(XEN_TARGET_ARCH) tinycpp
+	DEF_CPPFLAGS="$(TARGET_CPPFLAGS)" DEF_CFLAGS="$(TARGET_CFLAGS)" DEF_LDFLAGS="$(TARGET_LDFLAGS)" MINIOS_CONFIG="$(CURDIR)/tinycpp/minios.cfg" $(MAKE) DESTDIR= -C $(MINI_OS) OBJ_DIR=$(CURDIR)/$< LWIPDIR=$(CURDIR)/lwip-$(XEN_TARGET_ARCH) APP_OBJS=$(CURDIR)/tinycpp/main.a
 
 
 ## added 20180730, lele
