@@ -247,13 +247,13 @@ $(BINUTILS_STAMPFILE): mk-headers-$(XEN_TARGET_ARCH) binutils-$(BINUTILS_VERSION
 
 
 ###########
-# gcc-newlib-patch
-NEWLIB_PATCH_FOR_GCC=$(CURDIR)/gcc-newlib-patch/libgcc_newlib_patch.a
+# gcc_newlib.patch
+NEWLIB_PATCH_FOR_GCC=$(CURDIR)/gcc_newlib.patch/libgcc_newlib_patch.a
 
-$(CURDIR)/gcc-newlib-patch/libgcc_newlib_patch.o: $(CURDIR)/gcc-newlib-patch/patch.c
+$(CURDIR)/gcc_newlib.patch/libgcc_newlib_patch.o: $(CURDIR)/gcc_newlib.patch/patch.c
 	$(CC) $(TARGET_CPPFLAGS) $(TARGET_CFLAGS) $(NEWLIB_CFLAGS) -c -o $@ $<
 
-$(NEWLIB_PATCH_FOR_GCC): $(CURDIR)/gcc-newlib-patch/libgcc_newlib_patch.o
+$(NEWLIB_PATCH_FOR_GCC): $(CURDIR)/gcc_newlib.patch/libgcc_newlib_patch.o
 	$(AR) cr $@ $^
 
 ##############
